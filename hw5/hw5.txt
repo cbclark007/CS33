@@ -1,0 +1,11 @@
+Christopher Clark
+UID: 305326742
+Homework 5
+
+1. The output of the MIPS code:
+
+The value of i is: 7
+
+2. The worst ordering:
+
+e. jyix

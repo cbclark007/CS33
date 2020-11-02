@@ -1,0 +1,60 @@
+Christopher Clark
+305326742
+
+2.71
+
+A. The code provided doesn't take into account the fact that there are negatives in signed integers.
+When coverted, the bytes go from 0 to 255 instead of -128 to 127.
+
+B. The following function is a correct implementation of the code:
+
+int xbyte(packed_t word, int bytenum)
+{
+  //the number of bits to shift (multiplies number of bytes needed to shift by 8 bits per byte)
+  int numBitsToShift = (3-bytenum) << 3;
+  //getting the byte you want to the most significant byte
+  int sigByte = word << numBitsToShift;
+  //right shifting the byte we want back to the least significant byte using an arithmetic right shift 
+  return sigByte >> 24;
+}
+
+
+2.82
+ints and unsigned are 32 bits
+
+int x = random();
+int y = random();
+
+unsigned ux = (unsigned) x;
+unsigned uy = (unsigned) y;
+
+A. (x < y) == (-x > -y)
+
+This is not always 1. If x is the minimum integer value, and y is any other arbitrary integer,
+then there is a problem when you do -TMin. -Tmin gives us just Tmin because of overflow, which is less than
+-y when y is anything else (e.g. 3).
+
+B. ((x+y) << 4) + y-x == 17*y + 15*x
+
+((x+y) << 4) multiplies (x+y) by 16. In other words, it's 16x + 16y.
+If then you add y and subtract x, you get 17 * y + 15 * x. So, this is always 1.
+
+C. ~x + ~y + 1 == ~(x + y)
+
+This is not always true. For example, if x and y are both 2:
+~(0010) + ~(0010) + 0001 = 1101 + 1101 + 0001 = 11011
+~(0010 + 0010) = ~(0100) = 1011
+
+11011 does not equal 1011.
+
+D. (ux-uy) == -(unsigned)(y-x)
+
+This is always 1. The bit patterns are the same between signed and unsigned regardless,
+and since the arithmetic is the same, both sides are equivalent.
+
+E. ((x >> 2) << 2) <= x
+
+This is always 1. Right shifting by two bits gets rid of the last two bits, and then the left shift
+replaces the last two bits with 0. So, the resulting number is either less than or equal to what x
+was originally. (x could end in 11, 01, 10, or 00). It would be the same if x ended in 00, but
+smaller otherwise.

@@ -1,0 +1,284 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+
+#define MATRIX_N 9973
+#define MEM_SIZE (sizeof(int) * MATRIX_N * MATRIX_N)
+#define LOOP 1000
+#define BLOCK 16
+
+void randomize(void *mem, size_t size) {
+  int rnd = open("/dev/urandom", O_RDONLY);
+  read(rnd, mem, size);
+  close(rnd);
+}
+
+
+void transpose_1(int *dst, int *src, int dim)
+{
+  int i, j;
+  for (i = 0; i < dim; i++) {
+    for (j = 0; j < dim; j++) {
+      dst[j*dim +i] = src[i*dim + j];
+    }
+  }
+}
+
+void transpose_2(int *dst, int *src, int dim)
+{
+  int i, j;
+  for(i = 0; i < dim-2; i += 2) {
+    for(j = 0; j < dim-2; j+= 2) {
+      dst[j*dim + i] = src[i*dim+j];
+      dst[j*dim + i + 1] = src[(i+1)*dim + j];
+      dst[(j+1)*dim + i] = src[i*dim + j+1];
+      dst[(j+1)*dim + i+1] = src[(i+1) * dim + j+1];
+    }
+  }
+
+  for(; i < dim; i++) {
+    for(j = 0; j < dim-2; j+=2) {
+      dst[j*dim +i] = src[i*dim + j];
+      dst[(j+1)*dim + i] = src[i*dim + j+1];
+    }
+  }
+
+  for(i=0; i < dim; i++) {
+    for(j = dim-2; j < dim; j++) {
+      dst[j*dim +i] = src[i*dim + j];
+    }
+  }
+}
+
+void transpose_3(int *dst, int *src, int dim)
+{
+  int i, j;
+  for(i = 0; i < dim-4; i += 4) {
+    for(j = 0; j < dim-4; j+= 4) {
+      for(int x = i; x < i+4; x++) {
+	for(int y = j; y < j+4; y++) {
+	  dst[y * dim + x] = src[x*dim + y];
+	}
+      }
+      //dst[j*dim + i] = src[i*dim+j];
+      //dst[j*dim + i + 1] = src[(i+1)*dim + j];
+      //dst[(j+1)*dim + i] = src[i*dim + j+1];
+      //dst[(j+1)*dim + i+1] = src[(i+1) * dim + j+1];
+    }
+  }
+
+  for(; i < dim; i++) {
+    for(j = 0; j < dim-4; j+=4) {
+      dst[j*dim +i] = src[i*dim + j];
+      dst[(j+1)*dim + i] = src[i*dim + j+1];
+      dst[(j+2)*dim + i] = src[i*dim + j+2];
+      dst[(j+3)*dim + i] = src[i*dim + j+3];
+    }
+  }
+
+  for(i=0; i < dim; i++) {
+    for(j = dim-4; j < dim; j++) {
+      dst[j*dim +i] = src[i*dim + j];
+    }
+  }
+}
+
+void transpose_4(int *dst, int *src, int dim)
+{
+  int i, j;
+  for(i = 0; i < dim-8; i += 8) {
+    for(j = 0; j < dim-8; j+= 8) {
+      for(int x = i; x < i+8; x++) {
+        for(int y = j; y < j+8; y++) {
+          dst[y * dim + x] = src[x*dim + y];
+        }
+      }
+    }
+  }
+
+  for(; i < dim; i++) {
+    for(j = 0; j < dim-8; j+=8) {
+      dst[j*dim +i] = src[i*dim + j];
+      dst[(j+1)*dim + i] = src[i*dim + j+1];
+      dst[(j+2)*dim + i] = src[i*dim + j+2];
+      dst[(j+3)*dim + i] = src[i*dim + j+3];
+      dst[(j+4)*dim + i] = src[i*dim + j+4];
+      dst[(j+5)*dim + i] = src[i*dim + j+5];
+      dst[(j+6)*dim + i] = src[i*dim + j+6];
+      dst[(j+7)*dim + i] = src[i*dim + j+7];
+    }
+  }
+
+  for(i=0; i < dim; i++) {
+    for(j = dim-8; j < dim; j++) {
+      dst[j*dim +i] = src[i*dim + j];
+    }
+  }
+}
+
+void transpose_5(int *dst, int *src, int dim)
+{
+  int i, j;
+  for(i = 0; i < dim-16; i += 16) {
+    for(j = 0; j < dim-16; j+= 16) {
+      for(int x = i; x < i+16; x++) {
+        for(int y = j; y < j+16; y++) {
+          dst[y * dim + x] = src[x*dim + y];
+        }
+      }
+    }
+  }
+
+  for(; i < dim; i++) {
+    for(j = 0; j < dim-16; j+=16) {
+      dst[j*dim +i] = src[i*dim + j];
+      dst[(j+1)*dim + i] = src[i*dim + j+1];
+      dst[(j+2)*dim + i] = src[i*dim + j+2];
+      dst[(j+3)*dim + i] = src[i*dim + j+3];
+      dst[(j+4)*dim + i] = src[i*dim + j+4];
+      dst[(j+5)*dim + i] = src[i*dim + j+5];
+      dst[(j+6)*dim + i] = src[i*dim + j+6];
+      dst[(j+7)*dim + i] = src[i*dim + j+7];
+      dst[(j+8)*dim + i] = src[i*dim + j+8];
+      dst[(j+9)*dim + i] = src[i*dim + j+9];
+      dst[(j+10)*dim + i] = src[i*dim + j+10];
+      dst[(j+11)*dim + i] = src[i*dim + j+11];
+      dst[(j+12)*dim + i] = src[i*dim + j+12];
+      dst[(j+13)*dim + i] = src[i*dim + j+13];
+      dst[(j+14)*dim + i] = src[i*dim + j+14];
+      dst[(j+15)*dim + i] = src[i*dim + j+15];
+    }
+  }
+
+  for(i=0; i < dim; i++) {
+    for(j = dim-16; j < dim; j++) {
+      dst[j*dim +i] = src[i*dim + j];
+    }
+  }
+}
+
+void transpose_6(int *dst, int *src, int dim)
+{
+  int i, j;
+  for(i = 0; i < dim-32; i += 32) {
+    for(j = 0; j < dim-32; j+= 32) {
+      for(int x = i; x < i+32; x++) {
+        for(int y = j; y < j+32; y++) {
+          dst[y * dim + x] = src[x*dim + y];
+        }
+      }
+    }
+  }
+
+  for(; i < dim; i++) {
+    for(j = 0; j < dim-32; j+=32) {
+      for(int x = j; x < j+32; x++) {
+	dst[x*dim + i] = src[i*dim + x];
+      }
+    }
+  }
+
+  for(i=0; i < dim; i++) {
+    for(j = dim-32; j < dim; j++) {
+      dst[j*dim +i] = src[i*dim + j];
+    }
+  }
+}
+
+
+
+int main()
+{
+  int *src = (int *) malloc(MEM_SIZE);
+  int *dest = (int *) malloc(MEM_SIZE);
+  randomize((void *)src, MEM_SIZE);
+
+  memset(dest, 0, MEM_SIZE);
+
+  clock_t start = clock();
+
+  transpose_1(dest, src, MATRIX_N);
+
+  clock_t end = clock();
+  long time1 = end-start;
+  printf("time for slow: %ld\n", time1);
+
+  for(int i = 0; i < MATRIX_N; i++)
+    for(int j = 0; j < MATRIX_N; j++)
+      assert(src[i*MATRIX_N + j] == dest[j*MATRIX_N + i]);
+
+  //ok now we try faster ones
+
+  memset(dest, 0, MEM_SIZE);
+
+  start = clock();
+
+  transpose_2(dest, src, MATRIX_N);
+
+  end = clock();
+  long time2 = end-start;
+  double speedup = (time1*1.0-time2)/time1;
+  printf("total time for 2: %ld, speedup %f\n", time2, speedup);
+
+  for(int i = 0; i < MATRIX_N; i++)
+    for(int j = 0; j < MATRIX_N; j++)
+      assert(src[i*MATRIX_N + j] == dest[j*MATRIX_N + i]);
+
+  //transpose 3
+  memset(dest, 0, MEM_SIZE);
+  start = clock();
+  transpose_3(dest, src, MATRIX_N);
+  end = clock();
+  long time3 = end-start;
+  double speedup2 = (time1 * 1.0 - time3)/time1;
+  printf("total time for 3: %ld, speedup %f\n", time3, speedup2);
+
+  for(int i = 0; i < MATRIX_N; i++)
+    for(int j = 0; j < MATRIX_N; j++)
+      assert(src[i*MATRIX_N + j] == dest[j*MATRIX_N + i]);
+
+  //transpose 4                                                                                                                          
+  memset(dest, 0, MEM_SIZE);
+  start = clock();
+  transpose_4(dest, src, MATRIX_N);
+  end = clock();
+  long time4 = end-start;
+  double speedup3 = (time1 * 1.0 - time4)/time1;
+  printf("total time for 4: %ld, speedup %f\n", time4, speedup3);
+
+  for(int i = 0; i < MATRIX_N; i++)
+    for(int j = 0; j < MATRIX_N; j++)
+      assert(src[i*MATRIX_N + j] == dest[j*MATRIX_N + i]);
+
+  //transpose 5                                                                                                                          
+  memset(dest, 0, MEM_SIZE);
+  start = clock();
+  transpose_5(dest, src, MATRIX_N);
+  end = clock();
+  long time5 = end-start;
+  double speedup4 = (time1 * 1.0 - time5)/time1;
+  printf("total time for 5: %ld, speedup %f\n", time5, speedup4);
+
+  for(int i = 0; i < MATRIX_N; i++)
+    for(int j = 0; j < MATRIX_N; j++)
+      assert(src[i*MATRIX_N + j] == dest[j*MATRIX_N + i]);
+
+  //transpose 6                                                                                                                                         
+  memset(dest, 0, MEM_SIZE);
+  start = clock();
+  transpose_6(dest, src, MATRIX_N);
+  end = clock();
+  long time6 = end-start;
+  double speedup5 = (time1 * 1.0 - time6)/time1;
+  printf("total time for 6: %ld, speedup %f\n", time6, speedup5);
+
+  for(int i = 0; i < MATRIX_N; i++)
+    for(int j = 0; j < MATRIX_N; j++)
+      assert(src[i*MATRIX_N + j] == dest[j*MATRIX_N + i]);
+
+
+}
